@@ -22,7 +22,7 @@ jobs:
         pip install pyinstaller
         pip install PyQt5
 
-    - name: Build for macOS
+    - name: Build with PyInstaller
       run: |
         pyinstaller --onefile \
           --windowed \
@@ -30,76 +30,8 @@ jobs:
           --add-data="datas:datas" \
           installer.py
 
-    - name: Upload macOS artifact
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: tilora-macos
-        path: dist/
-
-  build-windows:
-    runs-on: windows-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.9'
-
-    - name: Install dependencies
-      run: |
-        pip install pyinstaller
-        pip install PyQt5
-
-    - name: Build for Windows
-      run: |
-        pyinstaller --onefile `
-          --windowed `
-          --icon="datas/logo.ico" `
-          --name="TILORA_Installer" `
-          --add-data="datas;datas" `
-          installer.py
-
-    - name: Upload Windows artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: tilora-windows
-        path: dist/
-
-  build-linux:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.9'
-
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-tk
-
-    - name: Install Python dependencies
-      run: |
-        pip install pyinstaller
-        pip install PyQt5
-
-    - name: Build for Linux
-      run: |
-        pyinstaller --onefile \
-          --windowed \
-          --name="tilora_installer" \
-          --add-data="datas:datas" \
-          installer.py
-
-    - name: Upload Linux artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: tilora-linux
         path: dist/
