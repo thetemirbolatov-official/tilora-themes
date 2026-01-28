@@ -1,230 +1,37 @@
-name: Build TILORA THEMES Installer for macOS
+name: Build TILORA Installer
 
 on:
   push:
-    branches: [ main, master ]
-    paths:
-      - '**.py'
-      - 'datas/**'
-      - '.github/workflows/**'
-  pull_request:
-    branches: [ main, master ]
-  release:
-    types: [published]
-
-env:
-  PYTHON_VERSION: '3.9'
+    branches: [main]
 
 jobs:
   build-macos:
     runs-on: macos-latest
     
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 1
 
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
+    - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
+        python-version: '3.9'
 
-    - name: Verify project structure
+    - name: Install dependencies
       run: |
-        echo "📁 Checking project structure..."
-        echo "Current directory: $(pwd)"
-        echo "Files:"
-        ls -la
-        echo "datas directory:"
-        ls -la datas/ || echo "datas/ not found"
-        if [ -d "datas/TILORA-THEMES" ]; then
-          echo "✅ TILORA-THEMES directory found"
-          ls -la datas/TILORA-THEMES/
-        else
-          echo "❌ TILORA-THEMES directory not found in datas/"
-        fi
-        
-        # Check for installer.py
-        if [ -f "installer.py" ]; then
-          echo "✅ installer.py found"
-        else
-          echo "❌ installer.py not found"
-          exit 1
-        fi
+        pip install pyinstaller
+        pip install PyQt5
 
-    - name: Install Python dependencies
+    - name: Build with PyInstaller
       run: |
-        echo "📦 Installing dependencies..."
-        python -m pip install --upgrade pip
-        pip install pyinstaller==6.0.0
-        pip install PyQt5==5.15.10
-        pip list
+        pyinstaller --onefile \
+          --windowed \
+          --name="TILORA_Installer" \
+          --add-data="datas:datas" \
+          installer.py
 
-    - name: Prepare macOS environment
-      run: |
-        echo "🍎 Preparing macOS environment..."
-        # Check if we have the required files
-        if [ -f "datas/logo.ico" ]; then
-          echo "✅ Found logo.ico"
-        else
-          echo "⚠️  Warning: datas/logo.ico not found"
-        fi
-        
-        # Convert .ico to .icns for macOS if needed
-        if [ ! -f "datas/logo.icns" ] && [ -f "datas/logo.ico" ]; then
-          echo "Converting .ico to .icns..."
-          # You might need to install iconutil or use sips
-          # This is a placeholder - you'll need actual conversion logic
-          echo "Please create logo.icns manually for best results"
-        fi
-
-    - name: Build macOS application
-      run: |
-        echo "🔨 Building macOS application..."
-        
-        # Clean previous builds
-        rm -rf build dist
-        
-        # Create build command
-        BUILD_CMD="pyinstaller --onefile --windowed --name='tilora_installer'"
-        
-        # Add icon if available
-        if [ -f "datas/logo.icns" ]; then
-          BUILD_CMD="$BUILD_CMD --icon='datas/logo.icns'"
-        fi
-        
-        # Add data files
-        BUILD_CMD="$BUILD_CMD --add-data='datas:datas'"
-        
-        # Add hidden imports
-        BUILD_CMD="$BUILD_CMD --hidden-import=PyQt5"
-        BUILD_CMD="$BUILD_CMD --hidden-import=PyQt5.QtCore"
-        BUILD_CMD="$BUILD_CMD --hidden-import=PyQt5.QtGui"
-        BUILD_CMD="$BUILD_CMD --hidden-import=PyQt5.QtWidgets"
-        
-        # macOS specific options
-        BUILD_CMD="$BUILD_CMD --osx-bundle-identifier='com.thetemirbolatov.tilora'"
-        
-        # Clean and finalize
-        BUILD_CMD="$BUILD_CMD --clean installer.py"
-        
-        echo "Running: $BUILD_CMD"
-        eval $BUILD_CMD
-        
-        # Verify the build
-        if [ -f "dist/tilora_installer" ]; then
-          echo "✅ Executable created successfully"
-          ls -lh dist/tilora_installer
-          
-          # Create .app bundle
-          echo "📦 Creating .app bundle..."
-          
-          APP_DIR="dist/TILORA THEMES Installer.app"
-          mkdir -p "$APP_DIR/Contents/MacOS"
-          mkdir -p "$APP_DIR/Contents/Resources"
-          
-          # Copy executable
-          cp "dist/tilora_installer" "$APP_DIR/Contents/MacOS/"
-          chmod +x "$APP_DIR/Contents/MacOS/tilora_installer"
-          
-          # Create Info.plist
-          cat > "$APP_DIR/Contents/Info.plist" << EOF
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>CFBundleDisplayName</key>
-    <string>TILORA THEMES Installer</string>
-    <key>CFBundleExecutable</key>
-    <string>tilora_installer</string>
-    <key>CFBundleIdentifier</key>
-    <string>com.thetemirbolatov.tilora</string>
-    <key>CFBundleName</key>
-    <string>TILORA THEMES Installer</string>
-    <key>CFBundleVersion</key>
-    <string>1.0.0</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0</string>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-    <key>LSMinimumSystemVersion</key>
-    <string>10.13</string>
-</dict>
-</plist>
-EOF
-          
-          # Copy icon if available
-          if [ -f "datas/logo.icns" ]; then
-            cp "datas/logo.icns" "$APP_DIR/Contents/Resources/"
-            echo "Icon copied to app bundle"
-          fi
-          
-          echo "✅ macOS .app bundle created at: $APP_DIR"
-          du -sh "$APP_DIR"
-        else
-          echo "❌ Build failed - executable not found"
-          exit 1
-        fi
-
-    - name: Test the application (basic)
-      run: |
-        echo "🧪 Testing the application..."
-        if [ -f "dist/tilora_installer" ]; then
-          echo "Testing executable exists..."
-          # Try to run with --help or --version flag if your app supports it
-          # ./dist/tilora_installer --version || true
-          echo "✅ Executable is ready"
-        else
-          echo "❌ Executable not found for testing"
-        fi
-
-    - name: Upload macOS artifact
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: tilora-installer-macos
-        path: |
-          dist/tilora_installer
-          dist/TILORA THEMES Installer.app/
-        if-no-files-found: error
-        retention-days: 7
-
-    - name: Create release on tag
-      if: github.event_name == 'release' && github.event.action == 'published'
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          dist/tilora_installer
-          dist/TILORA THEMES Installer.app/
-        draft: false
-        prerelease: false
-
-  verify-structure:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Validate structure
-      run: |
-        echo "📋 Project structure validation:"
-        echo "================================"
-        
-        # Check critical files
-        REQUIRED_FILES=("installer.py" "datas/TILORA-THEMES/package.json" "datas/TILORA-THEMES/extension.js")
-        
-        for file in "${REQUIRED_FILES[@]}"; do
-          if [ -f "$file" ]; then
-            echo "✅ $file"
-          else
-            echo "❌ $file (MISSING)"
-            exit 1
-          fi
-        done
-        
-        echo "✅ All required files found!"
-        
-        # Show the installer.py header
-        echo -e "\n📝 installer.py first 10 lines:"
-        head -10 installer.py
+        name: tilora-macos
+        path: dist/
