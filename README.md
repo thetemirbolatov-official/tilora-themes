@@ -1,9 +1,9 @@
-# 🚀 TILORA Cosmic Theme - Премиум тема для Visual Studio Code
+# TILORA Cosmic Theme - Премиум тема для Visual Studio Code
 
 <div align="center">
 
 
-### **Космический дизайн уровня Google • VK • Telegram**
+### **Космический дизайн**
 
 **Разработано thetemirbolatov • 2026**
 
