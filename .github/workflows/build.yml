@@ -1,0 +1,205 @@
+name: Build TILORA THEMES Installer
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [published]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.9"]
+        include:
+          - os: ubuntu-latest
+            artifact_name: tilora_installer_linux
+            output_name: tilora_installer
+            icon_path: ""
+          - os: windows-latest
+            artifact_name: tilora_installer_windows
+            output_name: tilora_installer.exe
+            icon_path: datas/logo.ico
+          - os: macos-latest
+            artifact_name: tilora_installer_macos
+            output_name: tilora_installer.app
+            icon_path: datas/logo.icns
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install system dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-dev python3-pip python3-venv
+        sudo apt-get install -y libgl1-mesa-dev libxcb-xinerama0
+
+    - name: Install system dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install python-tk
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install PyQt5
+
+    - name: Check project structure
+      run: |
+        echo "Project structure:"
+        find . -type f -name "*.py" | head -20
+        echo "datas directory:"
+        ls -la datas/ || echo "No datas directory"
+        ls -la datas/TILORA-THEMES/ || echo "No TILORA-THEMES directory"
+
+    - name: Build for Linux
+      if: runner.os == 'Linux'
+      run: |
+        echo "Building for Linux..."
+        pyinstaller --onefile \
+          --windowed \
+          --name="tilora_installer" \
+          --add-data="datas:datas" \
+          --hidden-import=PyQt5 \
+          --hidden-import=PyQt5.QtCore \
+          --hidden-import=PyQt5.QtGui \
+          --hidden-import=PyQt5.QtWidgets \
+          --clean \
+          installer.py
+        
+        # Проверяем что файл создан
+        if [ -f "dist/tilora_installer" ]; then
+          echo "Build successful!"
+          ls -lh dist/tilora_installer
+          # Тестируем запуск
+          echo "Testing executable..."
+          ./dist/tilora_installer --version || true
+        else
+          echo "Build failed!"
+          exit 1
+        fi
+
+    - name: Build for Windows
+      if: runner.os == 'Windows'
+      run: |
+        echo "Building for Windows..."
+        pyinstaller --onefile `
+          --windowed `
+          --icon="datas/logo.ico" `
+          --name="tilora_installer" `
+          --add-data="datas;datas" `
+          --hidden-import=PyQt5 `
+          --hidden-import=PyQt5.QtCore `
+          --hidden-import=PyQt5.QtGui `
+          --hidden-import=PyQt5.QtWidgets `
+          --clean `
+          installer.py
+        
+        # Проверяем что файл создан
+        if (Test-Path "dist/tilora_installer.exe") {
+          echo "Build successful!"
+          dir dist\tilora_installer.exe
+        } else {
+          echo "Build failed!"
+          exit 1
+        }
+
+    - name: Build for macOS
+      if: runner.os == 'macOS'
+      run: |
+        echo "Building for macOS..."
+        
+        # Для macOS нужны дополнительные настройки
+        pyinstaller --onefile \
+          --windowed \
+          --name="tilora_installer" \
+          --add-data="datas:datas" \
+          --hidden-import=PyQt5 \
+          --hidden-import=PyQt5.QtCore \
+          --hidden-import=PyQt5.QtGui \
+          --hidden-import=PyQt5.QtWidgets \
+          --osx-bundle-identifier="com.thetemirbolatov.tilora" \
+          --clean \
+          installer.py
+        
+        # Создаем .app bundle для macOS
+        echo "Creating macOS app bundle..."
+        
+        # Переименовываем в .app
+        mkdir -p "dist/tilora_installer.app/Contents/MacOS"
+        mkdir -p "dist/tilora_installer.app/Contents/Resources"
+        
+        # Копируем исполняемый файл
+        cp "dist/tilora_installer" "dist/tilora_installer.app/Contents/MacOS/tilora_installer"
+        chmod +x "dist/tilora_installer.app/Contents/MacOS/tilora_installer"
+        
+        # Создаем Info.plist
+        cat > "dist/tilora_installer.app/Contents/Info.plist" << EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>CFBundleDisplayName</key>
+            <string>TILORA THEMES Installer</string>
+            <key>CFBundleExecutable</key>
+            <string>tilora_installer</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.thetemirbolatov.tilora</string>
+            <key>CFBundleName</key>
+            <string>TILORA THEMES Installer</string>
+            <key>CFBundleVersion</key>
+            <string>1.0.0</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+            <key>LSMinimumSystemVersion</key>
+            <string>10.13</string>
+        </dict>
+        </plist>
+        EOF
+        
+        # Копируем иконку если есть
+        if [ -f "datas/logo.icns" ]; then
+          cp "datas/logo.icns" "dist/tilora_installer.app/Contents/Resources/"
+          echo "Icon copied to app bundle"
+        fi
+        
+        echo "Build successful!"
+        ls -lh dist/tilora_installer.app
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: |
+          dist/
+          build/
+        if-no-files-found: error
+
+    - name: Create Release
+      if: github.event_name == 'release' && github.event.action == 'published'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/tilora_installer*
+          dist/*.exe
+          dist/*.app
+        draft: false
+        prerelease: false
