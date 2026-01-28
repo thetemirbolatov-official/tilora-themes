@@ -1,0 +1,119 @@
+{
+  "name": "tilora-themes",
+  "displayName": "TILORA THEMES - Cosmic Design",
+  "description": "Космическая премиум-тема с анимациями и супер-дизайном. Разработано thetemirbolatov",
+  "version": "1.0.0",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Themes"
+  ],
+  "contributes": {
+    "themes": [
+      {
+        "label": "TILORA Cosmic",
+        "uiTheme": "vs-dark",
+        "path": "./themes/tilora-cosmic.json"
+      },
+      {
+        "label": "TILORA Cosmic Light",
+        "uiTheme": "vs",
+        "path": "./themes/tilora-cosmic-light.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "tilora-themes.showInfo",
+        "title": "TILORA: Показать информацию о теме"
+      },
+      {
+        "command": "tilora-themes.toggleAnimations",
+        "title": "TILORA: Включить/выключить анимации"
+      },
+      {
+        "command": "tilora-themes.applyPreset",
+        "title": "TILORA: Применить пресет"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "tilora-themes.showInfo",
+          "when": "always"
+        },
+        {
+          "command": "tilora-themes.toggleAnimations",
+          "when": "always"
+        },
+        {
+          "command": "tilora-themes.applyPreset",
+          "when": "always"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "tilora-themes.showInfo",
+          "group": "navigation",
+          "when": "always"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "TILORA Themes",
+      "properties": {
+        "tiloraThemes.enableAnimations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Включить плавные анимации и переходы"
+        },
+        "tiloraThemes.animationSpeed": {
+          "type": "string",
+          "default": "medium",
+          "enum": ["slow", "medium", "fast"],
+          "description": "Скорость анимаций"
+        },
+        "tiloraThemes.glowEffect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Эффект свечения элементов"
+        },
+        "tiloraThemes.particleEffects": {
+          "type": "boolean",
+          "default": false,
+          "description": "Космические частицы (только для мощных ПК)"
+        },
+        "tiloraThemes.customAccentColor": {
+          "type": "string",
+          "default": "#7B61FF",
+          "description": "Цвет акцента темы"
+        }
+      }
+    }
+  },
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "icon": "logo.icns",
+  "publisher": "thetemirbolatov",
+  "author": {
+    "name": "thetemirbolatov",
+    "url": "https://github.com/thetemirbolatov-official"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thetemirbolatov-official/tilora-themes"
+  },
+  "keywords": [
+    "theme",
+    "cosmic",
+    "premium",
+    "beautiful",
+    "animation",
+    "gradient",
+    "dark",
+    "light"
+  ],
+  "license": "MIT"
+}
