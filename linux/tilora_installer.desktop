@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=TILORA THEMES Installer
+Comment=Installer for TILORA VS Code theme
+Exec=tilora_installer
+Icon=tilora_installer
+Terminal=false
+Categories=Utility;Development;
+StartupWMClass=TILORA THEMES Installer
+MimeType=
