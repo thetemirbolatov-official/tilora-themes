@@ -1,37 +1,67 @@
-name: Build TILORA Installer
+name: Build TILORA Installer for Linux
 
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
-  build-macos:
-    runs-on: macos-latest
+  build-linux:
+    runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
         python-version: '3.9'
+        cache: 'pip'
 
-    - name: Install dependencies
+    - name: Install system dependencies
       run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-tk
+        sudo apt-get install -y xvfb
+
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
         pip install pyinstaller
         pip install PyQt5
 
-    - name: Build with PyInstaller
+    - name: Build for Linux
       run: |
         pyinstaller --onefile \
           --windowed \
-          --name="TILORA_Installer" \
+          --name="tilora_installer" \
           --add-data="datas:datas" \
+          --hidden-import=PyQt5 \
+          --hidden-import=PyQt5.QtCore \
+          --hidden-import=PyQt5.QtGui \
+          --hidden-import=PyQt5.QtWidgets \
           installer.py
 
-    - name: Upload artifact
+    - name: Test the executable
+      run: |
+        echo "Testing the built executable..."
+        # Проверяем что файл создан
+        if [ -f "dist/tilora_installer" ]; then
+          echo "✅ Executable file size:"
+          ls -lh dist/tilora_installer
+          # Делаем исполняемым
+          chmod +x dist/tilora_installer
+          echo "✅ File is executable"
+        else
+          echo "❌ Executable not found!"
+          exit 1
+        fi
+
+    - name: Upload Linux artifact
       uses: actions/upload-artifact@v4
       with:
-        name: tilora-macos
+        name: tilora-linux-installer
         path: dist/
+        retention-days: 7
